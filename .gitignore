@@ -1,0 +1,5 @@
+.idea/
+__pycache__/
+output/*.json
+.mypy_cache/
+output/
