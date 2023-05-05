@@ -117,7 +117,8 @@ def retry(func, retry_count=3, *args, **kwargs):
                     logger.warning("function failed, but no info about retry-after; retrying after 100ms")
                     time.sleep(0.1)
             elif response.status_code == 410:
-                request: CosmosRequest = args[0]
+                # note: assume arg0 does not work for class functions
+                request: CosmosRequest = args[1]
                 if request.has_alternate_locations() > 0:
                     request.cycle_next_location()
                 else:
