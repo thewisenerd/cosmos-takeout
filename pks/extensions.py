@@ -80,7 +80,7 @@ class QueryCollectionWithCheckpoint:
         for idx, page in enumerate(iterable, req_start):
             yield idx, page
 
-            if idx % self.checkpoint_interval == 0:
+            if idx > 0 and idx % self.checkpoint_interval == 0:
                 self._checkpoint_write_impl(pk, extract_response_header(page, Headers.ms_continuation), idx)
 
         self._checkpoint_write_impl(pk, None, -2)
