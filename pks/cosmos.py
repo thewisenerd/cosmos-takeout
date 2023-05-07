@@ -92,7 +92,7 @@ def extract_response_header(
 
 
 @decorator.decorator
-def retry(func, retry_count=3, *args, **kwargs):
+def retry(func, retry_count=32, *args, **kwargs):
     retry_ctr = 0
     last_exception: typing.Optional[requests.HTTPError] = None
     while retry_ctr < retry_count:
@@ -125,6 +125,12 @@ def retry(func, retry_count=3, *args, **kwargs):
                     logger.warning("resource gone, no alternative hosts available")
             else:
                 raise e
+        except requests.exceptions.ConnectionError as e:
+            logger.warning("request failed with ConnectionError", e)
+            time.sleep(0.1)
+        except requests.RequestException as e:
+            logger.warning("known request exception", e)
+            time.sleep(0.1)
     if last_exception is not None:
         raise last_exception
     else:
@@ -308,13 +314,16 @@ class CosmosClient0:
         ).prepare()
 
         session = self.options.session_provider.provide_session(prepared.url)
-        response = session.send(
+        response: requests.Response = session.send(
             prepared,
             stream=request.stream,
             proxies=self.options.http_request_proxies(),
             verify=self.options.http_request_verify()
         )
         response.raise_for_status()
+        # attempt reading complete response to wrap within retry decorator
+        content = response.content
+        logger.debug(f"{len(content)} bytes read")
         return response
 
     def aio_request_paginated(
@@ -517,7 +526,6 @@ class CosmosClient(CosmosClient0):
             locations,
             f'{resource_link}/docs',
             data=json.dumps(body),
-            stream=True
         )
 
         return self.aio_request_paginated(request, start_continuation_token=continuation_token)

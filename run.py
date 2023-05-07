@@ -11,11 +11,12 @@ ch = logging.StreamHandler()
 ch.setLevel(logging.DEBUG)
 ch.setFormatter(logging.Formatter(logging.BASIC_FORMAT))
 
+_log_level = logging.INFO
 logger = logging.getLogger('Runner')
 logger.propagate = False
 logger.addHandler(ch)
-logger.setLevel(logging.INFO)
-setup_pks_logger(handlers=[ch])
+logger.setLevel(_log_level)
+setup_pks_logger(handlers=[ch], level=_log_level)
 
 _cfg_file = 'config.ini'
 

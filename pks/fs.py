@@ -1,5 +1,6 @@
 import os
 import typing
+from abc import ABC, abstractmethod
 from os import path
 
 import requests
@@ -7,8 +8,22 @@ import requests
 from .cosmos import ClientOptions
 
 
+class CacheConfig(ABC):
+    @abstractmethod
+    def get_output_dir(self):
+        pass
+
+    @abstractmethod
+    def get_output_filename(self, pk_id: typing.Optional[str], key: str, idx: typing.Optional[int] = None) -> str:
+        pass
+
+    @abstractmethod
+    def valid(self, filepath: str) -> bool:
+        pass
+
+
 # region LocalCache
-class LocalCacheConfig:
+class LocalCacheConfig(CacheConfig):
     def __init__(self, client_options: ClientOptions, output_dir: str = 'output', page_chunk_size: int = (1024 * 1024)):
         self.account = client_options.account
         self.database = client_options.database
@@ -20,7 +35,7 @@ class LocalCacheConfig:
 
         self._fx_path: typing.Optional[str] = None
 
-    def _get_output_dir(self):
+    def get_output_dir(self):
         if self._fx_path is not None:
             return self._fx_path
 
@@ -34,7 +49,7 @@ class LocalCacheConfig:
         return self._fx_path
 
     def get_output_filename(self, pk_id: typing.Optional[str], key: str, idx: typing.Optional[int] = None) -> str:
-        fx_path = self._get_output_dir()
+        fx_path = self.get_output_dir()
         if pk_id is not None:
             assert len(pk_id) > 0, "length of provided pk_id must be greater than zero"
             fx_path = os.path.join(fx_path, pk_id)
@@ -44,8 +59,7 @@ class LocalCacheConfig:
             else '%s.json' % key
         return path.join(fx_path, filename)
 
-    @staticmethod
-    def valid(filepath: str) -> bool:
+    def valid(self, filepath: str) -> bool:
         return os.path.exists(filepath) and os.stat(filepath).st_size > 0
 
     def dump_response(
